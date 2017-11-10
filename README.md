@@ -27,8 +27,9 @@ Compared to SQL, this thing has the following differences:
 # Example Code
 To get an idea what this is for, a look on some sample code might help. If it doesn't help, just ignore itm it is explained later
 
-```
-def get_acc_slicer():
+```Python
+def get_slicer():
+	# create two slicers to store the results, which use a shared schema
 	try:
 		accuracies = Slicer().open(experiment_id+"/results/accuracies")
 	except Slicer.NotFound:
@@ -39,13 +40,13 @@ def get_acc_slicer():
 		accuracies.add_col("teach_method", Column(["zbab", "deeptaylor"]))
 
 	schema = accuracies.schema()
-	schema.subscribe(accuracies)
+	schema.subscribe(accuracies) # make sure future changes on schema will by synced with accuracies
 
 	try:
 		activations = Slicer().open(experiment_id+"/results/accuracies")
 	except Slicer.NotFound:
 		activations = Slicer()
-	schema.subscribe(activations)
+	schema.subscribe(activations) # bind this slicer to the same schema
 
 	return schema, accuracies, activations
 
@@ -54,6 +55,7 @@ def train_students(teacher):
 
 	schema, accuracies, activations = get_slicer()
 
+	# generate some data to store
 	for sample_size in [10, 40, 160, 640, 2560, 10000]:
 		for student_id in range(5):
 			...
@@ -65,8 +67,8 @@ def train_students(teacher):
 				students=student_config,
 				teach_method=teach_method
 				)
-
-	accuracies.save("accuracies")
+		
+	accuracies.save(experiment_id+"/results/accuracies")
 ```
 
 # Test
