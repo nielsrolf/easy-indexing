@@ -1,14 +1,15 @@
-import threading
+import threading, os
 from errors import *
+import utils
 import pdb
 
 
 class Column():
-	def __init__(self, domain, default=None):
+	def __init__(self, domain=None, default=None):
 		"""
 		adds a column to the schema
 		if objects are stored already and no default is provided, this raises an Error
-		domain: int/float/str/list of possible values
+		domain: int/float/str/list of possible values; None for all
 		default: function that maps a stored element to its meta attribute. If objects are added to a slicer, all columns which do not have a default must be specified
 		"""
 		self.attributes = {} # obj_id -> attribute
@@ -18,14 +19,19 @@ class Column():
 		except:
 			self.domain = domain
 
+	def copy(self):
+		# copies schema, not content
+		return Column(domain=self.domain, default=self.default)
+
 	def validate_attribute(self, attribute):
+		if self.domain is None: return
+
 		if isinstance(self.domain, list):
 			if not attribute in domain:
 				raise ValidatorError()
 
 		if not isinstance(attribute, self.domain):
 			raise ValidatorError()
-
 
 	def add(self, obj, obj_id, attribute):
 		if attribute is None:
@@ -50,6 +56,20 @@ class Column():
 				return False
 
 		return self.attributes[obj_id] == val
+
+	def save(self, export_dir): # save column type
+		utils.pickle_single(export_dir+"/domain", self.domain)
+
+	def open(self, import_dir):
+		self.domain = utils.load_single(import_dir+"/domain")
+		return self
+
+	def save_metadata(self, export_dir): # save metadata of stored objects
+		utils.pickle_single(export_dir+"/metadata", self.attributes)
+
+	def open_metadata(self, import_dir):
+		self.attributes = utils.load_single(import_dir+"/metadata")
+		return self
 
 	def __call__(self):
 		# return domain list, i.e. list of all existing entries
@@ -95,6 +115,40 @@ class Slice():
 	def unique(self):
 		pass
 
+class Schema():
+	# this class is used to transfer and share schemas between different Slicers
+	def __init__(self, cols):
+		self.cols = {col_name: cols[col_name].copy() for col_name in cols}
+		self.subscriptions = []
+		self.add_col_lock = threading.Lock()
+
+	def subscribe(self, slicer):
+		# adds copies of added columns to all subscribed slicers, does not copy columns from slicers to this
+		self.subscriptions.append(slicer)
+		for col_name, col in self.cols.items():
+			if col_name in slicer.cols:
+				if slicer.cols[col_name].domain == col.domain: continue
+				else: raise Exception("schema got a new subscription, but slicer column '{}' doesn't match schema column '{}'".format(col_name, col_name))
+			slicer.add_col(col_name, col.copy())
+
+	def add_col(self, name, col):
+		with self.add_col_lock:
+			if name in self.cols:
+				raise Exception("Column {} already exists".format(name))
+			self.cols[name] = col
+			self.__dict__[name] = col
+
+		for sub in self.subscriptions:
+			sub.add_col(name, col.copy())
+
+	def save(self, export_dir):
+		for col_name, col in self.cols.items():
+			col.save(export_dir+"/"+col_name)
+
+	def open(self, import_dir):
+		for col_name in os.listdir(import_dir):
+			self.cols[col_name] = Column().open(import_dir+"/"+col_name)
+		return self
 
 class Slicer():
 	# store objects, tag them, query all objects with certain tagged values
@@ -154,16 +208,56 @@ class Slicer():
 		pass
 
 	# Export / Import
-	@staticmethod
-	def import_schema():
-		pass
+	def schema(self): # export schema
+		# returns a schema_object, which has a .save(export_dir)
+		return Schema(self.cols)
 
-	def export_schema():
-		pass
+	# import schema: schema.subscribe(self)
 
-	def export_slice():
-		pass
+	def save(self, export_dir):
+		"""
+		Saves like this:
+		export_path
+			/schema : schema files
+			/meta
+				/:column name
+					column.attributes
+			/objects
+				/:object_id : object files
+		If the stored objects have a .save(), this will be used, otherwise uses utils.pickle_alot
+		"""
+		self.schema().save(export_dir+"/schema")
 
-	def import_slice():
-		pass
+		for col_name, col in self.cols.items():
+			col.save_metadata(export_dir+"/meta/"+col_name)
 
+		for obj_id, obj in enumerate(self.data):
+			try:
+				obj.save(export_dir+"/objects/"+str(obj_id))
+			except AttributeError:
+				utils.pickle_single(export_dir+"/objects/"+str(obj_id), obj)
+
+	class NotFound(Exception):
+		def __init__(self, import_dir):
+			super().__init__("Slicer object: can't open {}".format(import_dir))
+
+	def open(self, import_dir, ObjClass=None):
+		self.schema().open(import_dir+"/schema").subscribe(self)
+
+		for col_name, col in self.cols.items():
+			col.open_metadata(import_dir+"/meta/"+col_name)
+
+		obj_id = 0
+		while True:
+			try: # if there is another unloaded object
+				if ObjClass is None:
+					self.data.append(
+						utils.load_single(import_dir+"/objects/"+str(obj_id)))
+				else:
+					obj = ObjClass()
+					obj.open((import_dir+"/objects/"+str(obj_id)))
+					self.data.append(obj)
+
+				obj_id += 1
+			except FileNotFoundError: break
+		return self

@@ -1,3 +1,16 @@
+# What comes next
+I want to add:
+- add metadata for existing objects if default is provided
+- retrieve all meta data for an object
+- Set operations (union, distinct, ...)
+
+If someone wants to use this too, it makes me so happy that I will try to add the features you need :)
+
+# Notes
+- When exporting/importing: the domain of a column must support dumping, and export+import should be hash invariant (after ex- and import, the attributes must be recognized)
+
+-----------------------------------------------------------
+
 # Organize your data
 
 When I wrote my bachelor thesis, I generated a lot of data that I needed to analyse, and it all got a huge mess.
@@ -10,6 +23,9 @@ Compared to SQL, this thing has the following differences:
 - stores objects that are in RAM already
 - queries are for meta attributes of objects rather than object properties themselves
 - queries are not evaulated in a perfomance optimized way, it is only thought for a more convenient data access
+
+# Test
+`python -m unittest -v tests`
 
 # Example use case
 Assume you profile pictures in a normalized size, and the following meta data: sex, age, origin country, color of hair
@@ -51,10 +67,3 @@ The subset definition uses the columns of the root slicer: the basic elements ar
 ## OR
 Can be realized by `slicer.get(property1=[v1, w1])`: it's like (`property1=v1 OR property1=w1`)
 
-# What comes next
-I want to add:
-- retrieve all meta data for an object
-- Import, export
-- Set operations
-
-If someone wants to use this too, it makes me so happy that I will try to add the features you need :)
