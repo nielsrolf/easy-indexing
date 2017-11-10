@@ -1,6 +1,6 @@
 import unittest, shutil
 import utils
-from indexing import *
+from src import *
 import pdb
 
 class Content():

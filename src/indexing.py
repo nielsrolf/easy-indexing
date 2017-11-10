@@ -1,5 +1,5 @@
 import threading, os
-from errors import *
+from .errors import *
 import utils
 import pdb
 

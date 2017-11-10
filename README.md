@@ -72,7 +72,7 @@ def train_students(teacher):
 ```
 
 # Test
-`python -m unittest -v tests`
+`python -m unittest -v test`
 
 # Example use case
 Assume you profile pictures in a normalized size, and the following meta data: sex, age, origin country, color of hair
