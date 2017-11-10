@@ -24,6 +24,51 @@ Compared to SQL, this thing has the following differences:
 - queries are for meta attributes of objects rather than object properties themselves
 - queries are not evaulated in a perfomance optimized way, it is only thought for a more convenient data access
 
+# Example Code
+To get an idea what this is for, a look on some sample code might help. If it doesn't help, just ignore itm it is explained later
+
+```
+def get_acc_slicer():
+	try:
+		accuracies = Slicer().open(experiment_id+"/results/accuracies")
+	except Slicer.NotFound:
+		accuracies = Slicer()
+		accuracies.add_col("sample_size", Column())
+		accuracies.add_col("teacher", Column(["mlp", "cnn"], default=lambda config: config["a_name"]))
+		accuracies.add_col("students", Column(["mlp", "cnn"], default=lambda config: config["a_name"]))
+		accuracies.add_col("teach_method", Column(["zbab", "deeptaylor"]))
+
+	schema = accuracies.schema()
+	schema.subscribe(accuracies)
+
+	try:
+		activations = Slicer().open(experiment_id+"/results/accuracies")
+	except Slicer.NotFound:
+		activations = Slicer()
+	schema.subscribe(activations)
+
+	return schema, accuracies, activations
+
+def train_students(teacher):
+	...
+
+	schema, accuracies, activations = get_slicer()
+
+	for sample_size in [10, 40, 160, 640, 2560, 10000]:
+		for student_id in range(5):
+			...
+			test_acc = student.nn.sess.run(student.nn.accuracy, feed_dict=student_data.test_dict())
+			accuracies.add(
+				test_acc,
+				sample_size=sample_size,
+				teacher=teacher_config,
+				students=student_config,
+				teach_method=teach_method
+				)
+
+	accuracies.save("accuracies")
+```
+
 # Test
 `python -m unittest -v tests`
 
