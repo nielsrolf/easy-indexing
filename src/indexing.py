@@ -2,10 +2,11 @@ import threading, os
 from .errors import *
 import utils
 import pdb
+import pprint
 
 
 class Column():
-	def __init__(self, domain=None, default=None):
+	def __init__(self, domain=None, default=None, name="Column"):
 		"""
 		adds a column to the schema
 		if objects are stored already and no default is provided, this raises an Error
@@ -35,7 +36,7 @@ class Column():
 
 	def add(self, obj, obj_id, attribute):
 		if attribute is None:
-			if self.default is None:
+			if self.default is not None:
 				attribute = self.default(obj)
 			else:
 				raise PropertyError("{} has no default, and but {} is tried to be stored without a value".format(type(self), obj))
@@ -55,9 +56,11 @@ class Column():
 			except AssertionError:
 				return False
 
-		return self.attributes[obj_id] == val
+		default = None if val is not None else 1
+		return self.attributes.get(obj_id, default) == val
 
 	def save(self, export_dir): # save column type
+		utils.mkdir(export_dir)
 		utils.pickle_single(export_dir+"/domain", self.domain)
 
 	def open(self, import_dir):
@@ -65,6 +68,7 @@ class Column():
 		return self
 
 	def save_metadata(self, export_dir): # save metadata of stored objects
+		utils.mkdir(export_dir)
 		utils.pickle_single(export_dir+"/metadata", self.attributes)
 
 	def open_metadata(self, import_dir):
@@ -122,14 +126,16 @@ class Schema():
 		self.subscriptions = []
 		self.add_col_lock = threading.Lock()
 
-	def subscribe(self, slicer):
+	def subscribe(self, *slicers):
 		# adds copies of added columns to all subscribed slicers, does not copy columns from slicers to this
-		self.subscriptions.append(slicer)
-		for col_name, col in self.cols.items():
-			if col_name in slicer.cols:
-				if slicer.cols[col_name].domain == col.domain: continue
-				else: raise Exception("schema got a new subscription, but slicer column '{}' doesn't match schema column '{}'".format(col_name, col_name))
-			slicer.add_col(col_name, col.copy())
+
+		for slicer in slicers:
+			self.subscriptions.append(slicer)
+			for col_name, col in self.cols.items():
+				if col_name in slicer.cols:
+					if slicer.cols[col_name].domain == col.domain: continue
+					else: raise Exception("schema got a new subscription, but slicer column '{}' doesn't match schema column '{}'".format(col_name, col_name))
+				slicer.add_col(col_name, col.copy())
 
 	def add_col(self, name, col):
 		with self.add_col_lock:
@@ -142,6 +148,7 @@ class Schema():
 			sub.add_col(name, col.copy())
 
 	def save(self, export_dir):
+		utils.mkdir(export_dir)
 		for col_name, col in self.cols.items():
 			col.save(export_dir+"/"+col_name)
 
@@ -152,14 +159,16 @@ class Schema():
 
 class Slicer():
 	# store objects, tag them, query all objects with certain tagged values
-	def __init__(self, validator=lambda obj:True):
+	def __init__(self, cols = None, validator=lambda obj:True):
 		self.validator = validator # validator: a function that takes an object, can be used to simulate strong typing (lamba obj: isinstance(obj, int))
 		
-		self.cols = {}
+		self.cols = cols if cols is not None else {}
 		self.add_col_lock = threading.Lock()
 
 		self.data = [] # data will contain objects or Nones (deleted objects), Nones will be sorted out by eval()
 		self.add_obj_lock = threading.Lock()
+
+		self.pp = pprint.PrettyPrinter(indent=4).pprint
 
 	def col(self, name):
 		return self.cols[self.col_names[name]]
@@ -190,6 +199,18 @@ class Slicer():
 		except Exception as e: # something went wrong when inserting obj, delete it
 			self.data[obj_id] = None
 			raise e
+
+	def get_obj_meta(self, id):
+		return {"id": id,
+			"obj": self.data[id],
+			"meta": {col_name: self.cols[col_name].attributes.get(id, None) for col_name in self.cols}
+		}
+
+	def serialize(self):
+		return [self.get_obj_meta(id) for id in range(len(self.data))]
+
+	def inspect(self):
+		self.pp(self.serialize())
 
 	def all(self):
 		return [(obj_id, obj) for obj_id, obj in zip(range(len(self.data)), self.data)]
@@ -226,6 +247,7 @@ class Slicer():
 				/:object_id : object files
 		If the stored objects have a .save(), this will be used, otherwise uses utils.pickle_alot
 		"""
+		utils.mkdir(export_dir)
 		self.schema().save(export_dir+"/schema")
 
 		for col_name, col in self.cols.items():
@@ -236,10 +258,6 @@ class Slicer():
 				obj.save(export_dir+"/objects/"+str(obj_id))
 			except AttributeError:
 				utils.pickle_single(export_dir+"/objects/"+str(obj_id), obj)
-
-	class NotFound(Exception):
-		def __init__(self, import_dir):
-			super().__init__("Slicer object: can't open {}".format(import_dir))
 
 	def open(self, import_dir, ObjClass=None):
 		self.schema().open(import_dir+"/schema").subscribe(self)

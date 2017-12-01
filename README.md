@@ -1,7 +1,6 @@
 # What comes next
 I want to add:
 - add metadata for existing objects if default is provided
-- retrieve all meta data for an object
 - Set operations (union, distinct, ...)
 
 If someone wants to use this too, it makes me so happy that I will try to add the features you need :)
