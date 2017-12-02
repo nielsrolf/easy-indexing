@@ -1,3 +1,19 @@
+# What's this?
+This provides a data structure called `Slicer` that let's you store data with some meta data, and then query for that meta data. It also allows to save and load the data, and use common schemas for different `Slicer`s.
+Features:
+- Store data in a Slicer
+- Define the meta data schema for a slicer
+- Define dependencies between the schema of different slicers
+- Query for subsets of the data
+- Retrieve all meta data for an object
+- Iterate over query results and the meta data
+- Save and load slicers, including the schema and the data
+
+# Installation
+Right now, there is no clean way to install only this module because it uses another self written module which is not included here. Instead, my whole Python setup must be installed, which can be found in another repo of mine. I will soon provide a more convenient an clean way to install this cia pip.
+
+-----------------------------------------------------------
+
 # What comes next
 I want to add:
 - add metadata for existing objects if default is provided

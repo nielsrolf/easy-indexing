@@ -116,6 +116,9 @@ class Slice():
 		# returns a list
 		return [obj for obj_id, obj in self.all()]
 
+	def first(self):
+		return self.all()[0][1] # [1] because all[0] -> obj_id, obj
+
 	def union(self, other):
 		pass
 
