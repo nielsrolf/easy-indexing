@@ -89,6 +89,9 @@ class Slice():
 		self.properties = properties
 		self.parent = parent
 		self.slicer = slicer
+		# prepare to be used as iterable
+		self.iter_id = -1
+		self.iter_items = self.all()
 
 	def get(self,  **properties):
 		# returns slice
@@ -118,6 +121,17 @@ class Slice():
 
 	def unique(self):
 		pass
+
+	def __iter__(self):
+		return self
+
+	def __next__(self):
+		self.iter_id += 1
+		try:
+			obj_id, obj = self.iter_items[self.iter_id]
+		except IndexError:
+			raise StopIteration()
+		return self.slicer.get_obj_meta(obj_id, False)["meta"], obj
 
 class Schema():
 	# this class is used to transfer and share schemas between different Slicers
@@ -200,17 +214,19 @@ class Slicer():
 			self.data[obj_id] = None
 			raise e
 
-	def get_obj_meta(self, id):
-		return {"id": id,
-			"obj": self.data[id],
+	def get_obj_meta(self, id, serialize_obj=True):
+		meta = {"id": id,
 			"meta": {col_name: self.cols[col_name].attributes.get(id, None) for col_name in self.cols}
 		}
+		if serialize_obj:
+			meta["obj"] = self.data[id]
+		return meta
 
-	def serialize(self):
-		return [self.get_obj_meta(id) for id in range(len(self.data))]
+	def serialize(self, serialize_obj=True):
+		return [self.get_obj_meta(id, serialize_obj) for id in range(len(self.data))]
 
-	def inspect(self):
-		self.pp(self.serialize())
+	def inspect(self, serialize_obj=True):
+		self.pp(self.serialize(serialize_obj))
 
 	def all(self):
 		return [(obj_id, obj) for obj_id, obj in zip(range(len(self.data)), self.data)]
@@ -279,3 +295,6 @@ class Slicer():
 				obj_id += 1
 			except FileNotFoundError: break
 		return self
+
+	def __iter__(self):
+		return self.get()
