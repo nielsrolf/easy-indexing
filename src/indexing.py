@@ -125,7 +125,7 @@ class Slice():
 
 	def only(self):
 		entries = self.all()
-		assert(len(entries)==1, "Slice has more than one entry: properties: {} \n Entries: {}".format(self.properties, self.serialize()))
+		assert len(entries)==1, "Slice has more than one entry: properties: {} \n Entries: {}".format(self.properties, self.serialize())
 		return entries[0][1]
 
 	def union(self, other):
