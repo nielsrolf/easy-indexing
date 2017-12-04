@@ -16,6 +16,9 @@ Right now, there is no clean way to install only this module because it uses ano
 
 # What comes next
 I want to add:
+- Easy way to iterate over certain subsets (right now, you can iterate within a subset)
+- .order_by(), so that finally no loops will be necessary anymore to extract and format subsets
+- Aggregate Slice: Create Slicer from Slice, with same metadata but f(obj) instead of obj
 - add metadata for existing objects if default is provided
 - Set operations (union, distinct, ...)
 

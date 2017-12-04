@@ -6,7 +6,7 @@ import pprint
 
 
 class Column():
-	def __init__(self, domain=None, default=None, name="Column"):
+	def __init__(self, domain=None, default=lambda obj:None, name="Column"):
 		"""
 		adds a column to the schema
 		if objects are stored already and no default is provided, this raises an Error
@@ -116,8 +116,17 @@ class Slice():
 		# returns a list
 		return [obj for obj_id, obj in self.all()]
 
+	def serialize(self, serialize_obj=True):
+		self.ids = [obj_id for obj_id, obj in self.all()]
+		return [self.slicer.get_obj_meta(id, serialize_obj) for id in self.ids]
+
 	def first(self):
 		return self.all()[0][1] # [1] because all[0] -> obj_id, obj
+
+	def only(self):
+		entries = self.all()
+		assert(len(entries)==1, "Slice has more than one entry: properties: {} \n Entries: {}".format(self.properties, self.serialize()))
+		return entries[0][1]
 
 	def union(self, other):
 		pass
