@@ -79,7 +79,6 @@ class Column():
 		# return domain list, i.e. list of all existing entries
 		return list(self.attributes.values())
 
-
 class Slice():
 	def __init__(self,
 		parent,
@@ -89,9 +88,6 @@ class Slice():
 		self.properties = properties
 		self.parent = parent
 		self.slicer = slicer
-		# prepare to be used as iterable
-		self.iter_id = -1
-		self.iter_items = self.all()
 
 	def get(self,  **properties):
 		# returns slice
@@ -135,6 +131,15 @@ class Slice():
 		pass
 
 	def __iter__(self):
+		return SliceIterator(self)
+
+class SliceIterator():
+	def __init__(self, s):
+		self.slice = s
+		self.iter_id = -1
+		self.iter_items = s.all()
+
+	def __iter__(self):
 		return self
 
 	def __next__(self):
@@ -143,7 +148,8 @@ class Slice():
 			obj_id, obj = self.iter_items[self.iter_id]
 		except IndexError:
 			raise StopIteration()
-		return self.slicer.get_obj_meta(obj_id, False)["meta"], obj
+		return self.slice.slicer.get_obj_meta(obj_id, False)["meta"], obj
+
 
 class Schema():
 	# this class is used to transfer and share schemas between different Slicers
@@ -309,4 +315,4 @@ class Slicer():
 		return self
 
 	def __iter__(self):
-		return self.get()
+		return self.get().__iter__()
