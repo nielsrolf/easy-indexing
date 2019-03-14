@@ -1,7 +1,6 @@
 import threading, os
 from .errors import *
-import utils
-import pdb
+from . import utils
 import pprint
 
 

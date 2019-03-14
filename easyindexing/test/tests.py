@@ -1,6 +1,6 @@
 import unittest, shutil
-import utils
-from src import *
+from easyindexing import utils
+from easyindexing import *
 import pdb
 
 class Content():

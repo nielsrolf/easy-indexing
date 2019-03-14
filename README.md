@@ -10,7 +10,7 @@ Features:
 - Save and load slicers, including the schema and the data
 
 # Installation
-Right now, there is no clean way to install only this module because it uses another self written module which is not included here. Instead, my whole Python setup must be installed, which can be found in another repo of mine. I will soon provide a more convenient an clean way to install this cia pip.
+Add this folder to your PYTHONPATH. Then `import easyindexing as ei`
 
 -----------------------------------------------------------
 
@@ -90,7 +90,7 @@ def train_students(teacher):
 ```
 
 # Test
-`python -m unittest -v test`
+`python -m unittest -v easyindexing.test`
 
 # Example use case
 Assume you profile pictures in a normalized size, and the following meta data: sex, age, origin country, color of hair
